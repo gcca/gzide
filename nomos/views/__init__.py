@@ -1,4 +1,4 @@
-# Copyright © 2023, Cristhian Alberto Gonzales Castillo. All Rights Reserved.
+# Copyright © 2023, Nomos-Team. All Rights Reserved.
 #
 # This file is part of Nomos.
 #
