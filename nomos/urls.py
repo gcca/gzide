@@ -15,46 +15,65 @@
 # You should have received a copy of the GNU General Public License along
 # with Nomos. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional, Tuple, Type
+from typing import List, Optional, Tuple, Type
 
-from django.db.models import Model
+from django.db import models
 from django.urls import URLPattern, path
 
-from .views.generic import models as views_models
+from .views.generic import menu as views_menu
 
-__all__ = ["model_patterns"]
+__all__ = ["menu_patterns"]
 
 
-def model_patterns(
-    model: Type[Model],
-    namespaceprefix: str,
-    bases: Optional[Tuple[Type, ...]] = None,
-) -> Tuple[Tuple[URLPattern, ...], str]:
-    sname = views_models.SN.sub("-", model._meta.object_name).lower()
-    namespaceprefix = f"{namespaceprefix}:{sname}"
-    patterns = views_models.Patterns(
-        f"{namespaceprefix}:main",
-        f"{namespaceprefix}:list",
-        f"{namespaceprefix}:detail",
-        f"{namespaceprefix}:create",
-        f"{namespaceprefix}:update",
+default_menu_traits = views_menu.MenuTraits()
+
+
+def menu_patterns(
+    model: Type[models.Model],
+    template_basedir: str,
+    app_name: str,
+    patterns_prefix: str,
+    pk_url_type: Optional[str] = None,
+    menu_traits: views_menu.MenuTraits = default_menu_traits,
+) -> Tuple[List[URLPattern], str]:
+    views = views_menu.menuviews_factory(
+        model,
+        template_basedir,
+        f"{patterns_prefix}:{app_name}",
+        menu_traits,
     )
-    views = views_models.modelviews_factory(model, patterns, bases)
+    pk_url_kwarg = views.detail.pk_url_kwarg
+    if pk_url_type is None:
+        pk_url_type = __infer_pk_url_type(model)
+
     return (
-        (
-            path("", views.mainview.as_view(), name="main"),
-            path("list/", views.listview.as_view(), name="list"),
-            path("create/", views.createview.as_view(), name="create"),
+        [
+            path("list/", views.list.as_view(), name="list"),
+            path("create/", views.create.as_view(), name="create"),
             path(
-                f"<int:{views.pk_url_kwarg}>/detail/",
-                views.detailview.as_view(),
+                f"<{pk_url_type}:{pk_url_kwarg}>/detail/",
+                views.detail.as_view(),
                 name="detail",
             ),
             path(
-                f"<int:{views.pk_url_kwarg}>/update/",
-                views.updateview.as_view(),
+                f"<{pk_url_type}:{pk_url_kwarg}>/update/",
+                views.update.as_view(),
                 name="update",
             ),
-        ),
-        sname,
+            path(
+                f"<{pk_url_type}:{pk_url_kwarg}>/delete/",
+                views.delete.as_view(),
+                name="delete",
+            ),
+        ],
+        app_name,
     )
+
+
+def __infer_pk_url_type(model: Type[models.Model]) -> str:
+    pk = model._meta.pk
+    if isinstance(pk, (models.BigIntegerField, models.ForeignKey)):
+        return "int"
+    if isinstance(pk, models.CharField):
+        return "str"
+    raise ValueError("Uninferable primary key field to type string")

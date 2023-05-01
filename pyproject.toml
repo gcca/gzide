@@ -12,7 +12,8 @@ authors = [
   { name = "Cristhian Gonzales", email = "yo@gcca.dev" }
 ]
 dependencies = [
-  "Django>=4.1.5",
+  "Django>=4.2",
+  "django-stubs-ext>=4.2.2",
   'typing_extensions; python_version<"3.10"'
 ]
 license = {text = "GPLv3"}
@@ -25,8 +26,8 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
   "Topic :: Software Development :: Libraries :: Python Modules"

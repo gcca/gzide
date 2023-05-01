@@ -14,6 +14,38 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with Nomos. If not, see <https://www.gnu.org/licenses/>.
-import django_stubs_ext
 
-django_stubs_ext.monkeypatch()
+from __future__ import annotations
+
+import functools
+import string
+from typing import Dict
+
+from django import template
+
+register = template.Library()
+
+CHS = string.ascii_lowercase
+CHSLEN = len(CHS)
+COUNT = -1
+KEYS: Dict[str, str] = {}
+
+
+@functools.lru_cache(maxsize=1024)
+def __skey(i: int) -> str:
+    return __skey(i // CHSLEN - 1) + CHS[int(i) % CHSLEN] if i + 1 else ""
+
+
+def skey(s: str) -> str:
+    if s in KEYS:
+        return KEYS[s]
+    global COUNT
+    COUNT += 1
+    KEYS[s] = ktok = __skey(COUNT // CHSLEN - 1) + CHS[int(COUNT) % CHSLEN]
+    return ktok
+
+
+@register.simple_tag
+@functools.cache
+def nomos_sk(s: str) -> str:
+    return skey(s)

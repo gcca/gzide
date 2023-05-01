@@ -14,6 +14,10 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with Nomos. If not, see <https://www.gnu.org/licenses/>.
-import django_stubs_ext
 
-django_stubs_ext.monkeypatch()
+from django.apps import AppConfig
+
+
+class NomosBulma(AppConfig):
+    name = "nomos.contrib.bulma"
+    verbose_name = "NomosBulma"

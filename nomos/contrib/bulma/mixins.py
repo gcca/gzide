@@ -14,6 +14,28 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with Nomos. If not, see <https://www.gnu.org/licenses/>.
-import django_stubs_ext
 
-django_stubs_ext.monkeypatch()
+from typing import Any, Dict, cast
+
+from django.forms.renderers import DjangoTemplates
+from django.forms.utils import RenderableMixin
+
+__all__ = ["BulmaRenderableMixin"]
+
+
+class BulmaRenderableMixin(RenderableMixin):
+    def as_bulma_v(self) -> str:
+        return cast(str, self.render("nomos/bulma/form_v.html"))
+
+
+class WidgetMixin:
+    template_str = ""
+
+    def _render(
+        self,
+        template_name: str,
+        context: Dict[str, Any],
+        renderer: DjangoTemplates,
+    ) -> str:
+        template = renderer.engine.from_string(self.template_str)
+        return cast(str, template.render(context))

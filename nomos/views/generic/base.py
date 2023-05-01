@@ -20,19 +20,20 @@ from typing import Any, Callable, List, Optional, Type, cast
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.forms import models as model_forms
-from django.views.generic import edit as edit_views
+from django.views.generic import base as base_views
 
-__all__ = ["CreateView"]
+__all__ = ["MixModelFormMixin"]
 
 
-class CreateView(edit_views.CreateView):
+class MixModelFormMixin(base_views.View):
     form_mixins: List[Any] = []
     formfield_callback: Optional[
         Callable[[models.Field], model_forms.Field]
     ] = None
-    form_class: Optional[Type[models.Model]]
 
-    def get_form_class(self) -> Type[models.Model]:
+    form_class: Optional[Type[model_forms.ModelForm]]
+
+    def get_form_class(self) -> Type[model_forms.ModelForm]:
         if self.form_class:
             if self.fields is not None:
                 raise ImproperlyConfigured(
@@ -57,7 +58,7 @@ class CreateView(edit_views.CreateView):
             )
 
             return cast(
-                Type[models.Model],
+                Type[model_forms.ModelForm],
                 model_forms.modelform_factory(
                     model,
                     model_form,

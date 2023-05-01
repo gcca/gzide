@@ -16,40 +16,45 @@
 # with Nomos. If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Dict, Final
+from typing import Any, Dict, Final, List
 
 from django import forms
+from django.db import models
 from django.http import HttpRequest, HttpResponse
 from django.views.generic.edit import FormView
 
 __all__ = ("CompleteView", "StepView")
 
 
-class SequenceView(FormView):
+class SequenceView(FormView[forms.ModelForm[models.Model]]):
     sequence_key: Final[str] = "sequence"
 
-    def _Data(self, form: forms.Form) -> Dict[str, Any]:
+    def _Data(self, form: forms.ModelForm[models.Model]) -> Dict[str, Any]:
         return forms.model_to_dict(form.instance)
 
-    def setup(self, request: HttpRequest, *args, **kwargs):
+    def setup(
+        self, request: HttpRequest, *args: List[Any], **kwargs: Dict[str, Any]
+    ) -> None:
         super().setup(request, *args, **kwargs)
         request.session.setdefault(self.sequence_key, {})
 
-    def get_initial(self):
+    def get_initial(self) -> Dict[str, Any]:
         return self.request.session.get(self.sequence_key, {})
 
 
 class StepView(SequenceView):
-    def form_valid(self, form: forms.Form) -> HttpResponse:
+    def form_valid(self, form: forms.ModelForm[models.Model]) -> HttpResponse:
         data = self._Data(form)
         step = self.request.session[self.sequence_key]
+        if form._meta.fields is None:
+            raise ValueError("No fields on step view")
         step.update({field: data[field] for field in form._meta.fields})
         self.request.session[self.sequence_key] = step
         return super().form_valid(form)
 
 
 class CompleteView(SequenceView):
-    def form_valid(self, form: forms.Form) -> HttpResponse:
+    def form_valid(self, form: forms.ModelForm[models.Model]) -> HttpResponse:
         lastep = self.request.session[self.sequence_key]
         for field in form.instance._meta.fields:
             if field.name not in lastep:

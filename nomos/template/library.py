@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import functools
 import sys
+from abc import abstractmethod
 from inspect import getfullargspec, unwrap
-from typing import Callable, Generic, Tuple, TypeVar
+from typing import Callable, Generic, Tuple, TypeVar, cast
 
 from django.template import Library as LibraryBase
 from django.template import Node
@@ -40,27 +41,29 @@ P = ParamSpec("P")
 
 
 class Library(LibraryBase):
-    def inlinetag(self, call: Callable[P, str]):
+    def inlinetag(self, call: Callable[P, str]) -> Callable[P, str]:
         @functools.wraps(call)
-        def compile_function(parser: Parser, token: Token):
+        def compile_function(parser: Parser, token: Token) -> InlineNode:
             args, kwargs = self.__CallArguments(parser, token, call)
             return InlineNode(call, args, kwargs)
 
         self.tag(call.__name__, compile_function)
         return call
 
-    def relinetag(self, call: Callable[P, str]):
+    def relinetag(self, call: Callable[P, str]) -> Callable[P, str]:
         @functools.wraps(call)
-        def compile_function(parser: Parser, token: Token):
+        def compile_function(parser: Parser, token: Token) -> RelineNode:
             args, kwargs = self.__CallArguments(parser, token, call)
             return RelineNode(call, args, kwargs)
 
         self.tag(call.__name__, compile_function)
         return call
 
-    def bigentag(self, call: Callable[P, Tuple[str, str]]):
+    def bigentag(
+        self, call: Callable[P, Tuple[str, str]]
+    ) -> Callable[P, Tuple[str, str]]:
         @functools.wraps(call)
-        def compile_function(parser: Parser, token: Token):
+        def compile_function(parser: Parser, token: Token) -> BigenNode:
             nodelist = parser.parse((f"end_{call.__name__}",))
             parser.delete_first_token()
             args, kwargs = self.__CallArguments(parser, token, call)
@@ -103,20 +106,27 @@ class ArgspecNodeBase(Node, Generic[T]):
         kwargs = {k: v.resolve(context) for k, v in self.kwargs.items()}
         return args, kwargs
 
+    @abstractmethod
+    def render(self, context: RequestContext) -> str:
+        ...
 
-class InlineNode(ArgspecNodeBase):
-    def render(self, context: RequestContext):
+
+class InlineNode(ArgspecNodeBase[str]):
+    def render(self, context: RequestContext) -> str:
         return self._Call(context)
 
 
 class RelineNode(InlineNode):
-    def render(self, context: RequestContext):
-        return context.template.engine.from_string(
-            super().render(context)
-        ).render(context)
+    def render(self, context: RequestContext) -> str:
+        return cast(
+            str,
+            context.template.engine.from_string(
+                super().render(context)
+            ).render(context),
+        )
 
 
-class BigenNode(ArgspecNodeBase):
+class BigenNode(ArgspecNodeBase[Tuple[str, str]]):
     def __init__(
         self,
         call: Callable[P, Tuple[str, str]],
@@ -127,7 +137,7 @@ class BigenNode(ArgspecNodeBase):
         super().__init__(call, args, kwargs)
         self.nodelist = nodelist
 
-    def render(self, context: RequestContext):
+    def render(self, context: RequestContext) -> str:
         begin, end = self._Call(context)
         body = self.nodelist.render(context)
         return f"{begin}{body}{end}"

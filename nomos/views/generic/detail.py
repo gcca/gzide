@@ -14,6 +14,18 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with Nomos. If not, see <https://www.gnu.org/licenses/>.
-import django_stubs_ext
 
-django_stubs_ext.monkeypatch()
+from typing import Any, Dict
+
+from django.views.generic.detail import DetailView
+
+
+class PairFieldsMixin(DetailView):
+    def get_context_data(self, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        obj = context["object"]
+        context["pairfields"] = tuple(
+            (field.name, getattr(obj, field.name))
+            for field in obj._meta.fields
+        )
+        return context

@@ -18,12 +18,13 @@
 from pathlib import Path
 
 from django.forms import renderers as form_renderers
+from django.template import Engine
 from django.utils.functional import cached_property
 
 
 class AppDjangoTemplates(form_renderers.DjangoTemplates):
     @cached_property
-    def engine(self):
+    def engine(self) -> Engine:
         loaders = [
             (
                 "django.template.loaders.cached.Loader",
